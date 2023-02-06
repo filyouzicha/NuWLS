@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
 
 	signal(SIGTERM, interrupt);
 
-	//s.parse_parameters1(argc, argv);
 	sscanf(argv[2], "%d", &seed);
 	srand(seed);
 	s.build_instance(argv[1]);
@@ -37,7 +36,7 @@ int main(int argc, char *argv[])
 
 	//s.simple_print();
 
-	s.free_memory();
+	//s.free_memory();
 
 	return 0;
 }

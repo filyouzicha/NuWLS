@@ -30,18 +30,6 @@ struct lit
 	bool sense;		//is 1 for true literals, 0 for false literals.
 };
 
-struct clauselit
-{
-	int var_num;	//variable num, begin with 1
-	bool sense;		//is 1 for true literals, 0 for false literals.
-};
-
-struct varlit
-{
-	int clause_num; //clause num, begin with 0
-	bool sense;		//is 1 for true literals, 0 for false literals.
-};
-
 static struct tms start_time;
 static double get_runtime()
 {
@@ -59,11 +47,6 @@ class ISDist
   private:
 	/***********non-algorithmic information ****************/
 	int problem_weighted;
-	int partial; //1 if the instance has hard clauses, and 0 otherwise.
-	int pure_sat;
-
-	int max_clause_length;
-	int min_clause_length;
 
 	//size of the instance
 	int num_vars;	//var index from 1 to num_vars
@@ -85,9 +68,9 @@ class ISDist
 
 	/**********end non-algorithmic information*****************/
 	/* literal arrays */
-	varlit **var_lit;		   //var_lit[i][j] means the j'th literal of var i.
+	lit **var_lit;		   //var_lit[i][j] means the j'th literal of var i.
 	int *var_lit_count;	//amount of literals of each var
-	clauselit **clause_lit;	  //clause_lit[i][j] means the j'th literal of clause i.
+	lit **clause_lit;	  //clause_lit[i][j] means the j'th literal of clause i.
 	int *clause_lit_count; // amount of literals in each clause
 
 	/* Information about the variables. */
@@ -207,13 +190,11 @@ class ISDist
 	ISDist();
 	void settings();
 	void build_instance(char *filename);
-	void local_search(char *inputfile);
 	void local_search_with_decimation(char *inputfile);
 	void simple_print();
 	void print_best_solution();
 	void free_memory();
 	bool verify_sol();
-	bool parse_parameters1(int argc, char **argv);
 	bool parse_parameters2(int argc, char **argv);
 };
 

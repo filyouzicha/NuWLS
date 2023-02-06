@@ -8,7 +8,7 @@ using namespace std;
 class Decimation
 {
   public:
-    Decimation(varlit **ls_var_lit, int *ls_var_lit_count, clauselit **ls_clause_lit, long long *ls_org_clause_weight, long long ls_top_clause_weight);
+    Decimation(lit **ls_var_lit, int *ls_var_lit_count, lit **ls_clause_lit, long long *ls_org_clause_weight, long long ls_top_clause_weight);
 
     void make_space(int max_c, int max_v);
     void free_memory();
@@ -34,8 +34,8 @@ class Decimation
     long long *s_false_score;
     long long *sscore;
 
-    clauselit **clause_lit;
-    varlit **var_lit;
+    lit **clause_lit;
+    lit **var_lit;
     int *var_lit_count;
 
     int *local_opt;
@@ -61,7 +61,7 @@ class Decimation
     int *clause_lit_count;
 };
 
-Decimation::Decimation(varlit **ls_var_lit, int *ls_var_lit_count, clauselit **ls_clause_lit, long long *ls_org_clause_weight, long long ls_top_clause_weight)
+Decimation::Decimation(lit **ls_var_lit, int *ls_var_lit_count, lit **ls_clause_lit, long long *ls_org_clause_weight, long long ls_top_clause_weight)
 {
     var_lit = ls_var_lit;
     var_lit_count = ls_var_lit_count;
@@ -243,9 +243,8 @@ void Decimation::remove_unassigned_var(int v)
 void Decimation::assign(int v, int sense)
 {
     int c, l;
-    clauselit tem_lit;
+    lit tem_lit;
     fix[v] = sense;
-    lit tmp_lit;
     remove_unassigned_var(v);
 
     for (int i = 0; i < var_lit_count[v]; ++i)
@@ -298,10 +297,7 @@ void Decimation::assign(int v, int sense)
         }
         if (clause_lit_count[c] == 1)
         {
-            tmp_lit.clause_num = c;
-            tmp_lit.var_num = clause_lit[c][0].var_num;
-            tmp_lit.sense = clause_lit[c][0].sense;
-            push_unit_clause_to_queue(tmp_lit);
+            push_unit_clause_to_queue(clause_lit[c][0]);
         }
     }
 }

@@ -7,27 +7,48 @@
 void ISDist::init(vector<int> &init_solution)
 {
     soft_large_weight_clauses_count = 0;
-    cout << "c local_soln_feasible: " << local_soln_feasible << endl;
-    // local_soln_feasible = 0;
-    // Initialize clause information
-    cout << "c local_soln_feasible: " << local_soln_feasible << " best_soln_feasible: " << best_soln_feasible << endl;
-    for (int c = 0; c < num_clauses; c++)
+    if (1 == problem_weighted) // weighted partial MaxSAT
     {
-        already_in_soft_large_weight_stack[c] = 0;
-        clause_selected_count[c] = 0;
-
-        if (org_clause_weight[c] == top_clause_weight)
-            clause_weight[c] = 1;
-        else
+        if (0 != num_hclauses)
         {
-            if ((0 == local_soln_feasible || 0 == best_soln_feasible) && num_hclauses > 0)
+            if ((0 == local_soln_feasible || 0 == best_soln_feasible))
             {
-                clause_weight[c] = 1;
+                for (int c = 0; c < num_clauses; c++)
+                {
+                    already_in_soft_large_weight_stack[c] = 0;
+                    clause_selected_count[c] = 0;
+                    clause_weight[c] = 1;
+                }
             }
             else
             {
-                clause_weight[c] = coe_soft_clause_weight;
-                if (clause_weight[c] > 1 && already_in_soft_large_weight_stack[c] == 0)
+                for (int c = 0; c < num_clauses; c++)
+                {
+                    already_in_soft_large_weight_stack[c] = 0;
+                    clause_selected_count[c] = 0;
+
+                    if (org_clause_weight[c] == top_clause_weight)
+                        clause_weight[c] = 1;
+                    else
+                    {
+                        clause_weight[c] = tuned_org_clause_weight[c];
+                        if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
+                        {
+                            already_in_soft_large_weight_stack[c] = 1;
+                            soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int c = 0; c < num_clauses; c++)
+            {
+                already_in_soft_large_weight_stack[c] = 0;
+                clause_selected_count[c] = 0;
+                clause_weight[c] = tuned_org_clause_weight[c];
+                if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
                 {
                     already_in_soft_large_weight_stack[c] = 1;
                     soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
@@ -35,10 +56,36 @@ void ISDist::init(vector<int> &init_solution)
             }
         }
     }
+    else // unweighted partial MaxSAT
+    {
+        for (int c = 0; c < num_clauses; c++)
+        {
+            already_in_soft_large_weight_stack[c] = 0;
+            clause_selected_count[c] = 0;
+
+            if (org_clause_weight[c] == top_clause_weight)
+                clause_weight[c] = 1;
+            else
+            {
+                if ((0 == local_soln_feasible || 0 == best_soln_feasible) && num_hclauses > 0)
+                {
+                    clause_weight[c] = 1;
+                }
+                else
+                {
+                    clause_weight[c] = coe_soft_clause_weight;
+                    if (clause_weight[c] > 1 && already_in_soft_large_weight_stack[c] == 0)
+                    {
+                        already_in_soft_large_weight_stack[c] = 1;
+                        soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
+                    }
+                }
+            }
+        }
+    }
 
     if (init_solution.size() == 0)
     {
-        cout << "c init cur soln randomly" << endl;
         for (int v = 1; v <= num_vars; v++)
         {
             cur_soln[v] = rand() % 2;
@@ -48,7 +95,6 @@ void ISDist::init(vector<int> &init_solution)
     }
     else
     {
-        cout << "c init by deci fix" << endl;
         for (int v = 1; v <= num_vars; v++)
         {
             cur_soln[v] = init_solution[v];
@@ -88,7 +134,7 @@ void ISDist::init(vector<int> &init_solution)
     /*figure out score*/
     for (int v = 1; v <= num_vars; v++)
     {
-        score[v] = 0;
+        score[v] = 0.0;
         for (int i = 0; i < var_lit_count[v]; ++i)
         {
             int c = var_lit[v][i].clause_num;
@@ -111,10 +157,6 @@ void ISDist::init(vector<int> &init_solution)
         else
             already_in_goodvar_stack[v] = -1;
     }
-
-    // cout << goodvar_stack_fill_pointer << endl;
-    // cout << hard_unsat_nb << endl;
-    // cout << soft_unsat_weight << endl;
 }
 
 int ISDist::pick_var()
@@ -122,7 +164,7 @@ int ISDist::pick_var()
     int i, v;
     int best_var;
     int sel_c;
-    clauselit *p;
+    lit *p;
 
     if (goodvar_stack_fill_pointer > 0)
     {
@@ -132,32 +174,21 @@ int ISDist::pick_var()
 
         if (goodvar_stack_fill_pointer < hd_count_threshold)
         {
-            // best_array_count = 1;
             best_var = goodvar_stack[0];
-            // best_array[0] = best_var;
 
             for (i = 1; i < goodvar_stack_fill_pointer; ++i)
             {
                 v = goodvar_stack[i];
                 if (score[v] > score[best_var])
                 {
-                    // best_array_count = 1;
-                    // best_array[0] = v;
                     best_var = v;
                 }
                 else if (score[v] == score[best_var])
                 {
                     if (time_stamp[v] < time_stamp[best_var])
                     {
-                        // best_array_count = 1;
-                        // best_array[0] = v;
                         best_var = v;
                     }
-                    /*else if (time_stamp[v] == time_stamp[best_var])
-                      {
-
-                      best_array[best_array_count++] = v;
-                      }*/
                 }
             }
             return best_var; // best_array[rand() % best_array_count];
@@ -165,8 +196,6 @@ int ISDist::pick_var()
         else
         {
             best_var = goodvar_stack[rand() % goodvar_stack_fill_pointer];
-            // best_array_count = 1;
-            // best_array[0] = best_var;
 
             for (i = 1; i < hd_count_threshold; ++i)
             {
@@ -174,21 +203,13 @@ int ISDist::pick_var()
                 if (score[v] > score[best_var])
                 {
                     best_var = v;
-                    // best_array_count = 1;
-                    // best_array[0] = v;
                 }
                 else if (score[v] == score[best_var])
                 {
                     if (time_stamp[v] < time_stamp[best_var])
                     {
-                        // best_array_count = 1;
-                        // best_array[0] = v;
                         best_var = v;
                     }
-                    /*else if (time_stamp[v] == time_stamp[best_var])
-                      {
-                      best_array[best_array_count++] = v;
-                      }*/
                 }
             }
             return best_var; // best_array[rand() % best_array_count];
@@ -224,55 +245,52 @@ int ISDist::pick_var()
     return best_var;
 }
 
-void ISDist::local_search(char *inputfile)
-{
-    vector<int> init_solution;
-    settings();
-    for (tries = 1; tries < max_tries; ++tries)
-    {
-        init(init_solution);
-        for (step = 1; step < max_flips; ++step)
-        {
-            if (hard_unsat_nb == 0 && (soft_unsat_weight < opt_unsat_weight || best_soln_feasible == 0))
-            {
-                if (soft_unsat_weight < opt_unsat_weight)
-                {
-                    best_soln_feasible = 1;
-                    opt_unsat_weight = soft_unsat_weight;
-                    opt_time = get_runtime();
-                    for (int v = 1; v <= num_vars; ++v)
-                        best_soln[v] = cur_soln[v];
-                }
-                if (opt_unsat_weight == 0)
-                    return;
-            }
-
-            if (step % 1000 == 0)
-            {
-                double elapse_time = get_runtime();
-                if (elapse_time >= cutoff_time)
-                    return;
-                else if (opt_unsat_weight == 0)
-                    return;
-            }
-
-            int flipvar = pick_var();
-            flip(flipvar);
-            time_stamp[flipvar] = step;
-        }
-    }
-}
-
 void ISDist::local_search_with_decimation(char *inputfile)
 {
-    if (0 == num_hclauses)
+    if (1 == problem_weighted)
     {
-        hd_count_threshold = 94;
-        coe_soft_clause_weight = 397;
-        rdprob = 0.007;
-        rwprob = 0.047;
-        soft_smooth_probability = 0.002;
-        softclause_weight_threshold = 550;
+        if (total_soft_length / num_sclauses > 100)
+        {
+            //cout << "c avg_soft_length: " << total_soft_length / num_sclauses << endl;
+            h_inc = 300;
+            s_inc = 100;
+        }
+        if (0 != num_hclauses)
+        {
+            coe_tuned_weight = (double)(coe_soft_clause_weight * num_sclauses) / double(top_clause_weight - 1);
+            for (int c = 0; c < num_clauses; c++)
+            {
+                if (org_clause_weight[c] != top_clause_weight)
+                {
+                    tuned_org_clause_weight[c] = (double)org_clause_weight[c] * coe_tuned_weight;
+                }
+            }
+        }
+        else
+        {
+            softclause_weight_threshold = 0;
+            soft_smooth_probability = 1E-3;
+            hd_count_threshold = 22;
+            rdprob = 0.036;
+            rwprob = 0.48;
+            s_inc = 1.0;
+            for (int c = 0; c < num_clauses; c++)
+            {
+                tuned_org_clause_weight[c] = org_clause_weight[c];
+            }
+        }
+    }
+    else
+    {
+        if (0 == num_hclauses)
+        {
+            hd_count_threshold = 94;
+            coe_soft_clause_weight = 397;
+            rdprob = 0.007;
+            rwprob = 0.047;
+            soft_smooth_probability = 0.002;
+            softclause_weight_threshold = 550;
+        }
     }
     Decimation deci(var_lit, var_lit_count, clause_lit, org_clause_weight, top_clause_weight);
     deci.make_space(num_clauses, num_vars);
@@ -280,15 +298,9 @@ void ISDist::local_search_with_decimation(char *inputfile)
     opt_unsat_weight = __LONG_LONG_MAX__;
     for (tries = 1; tries < max_tries; ++tries)
     {
-        cout << "c tries: " << tries << " " << total_step << endl;
-        // if (best_soln_feasible != 1) // others
-        //{
         deci.init(local_opt_soln, best_soln, unit_clause, unit_clause_count, clause_lit_count);
         deci.unit_prosess();
         init(deci.fix);
-        //}
-        // else // only one
-        //    init(deci.fix);
 
         long long local_opt = __LONG_LONG_MAX__;
         max_flips = max_non_improve_flip;
@@ -304,9 +316,11 @@ void ISDist::local_search_with_decimation(char *inputfile)
                 }
                 if (soft_unsat_weight < opt_unsat_weight)
                 {
-                    cout << "o " << soft_unsat_weight << " " << total_step << " " << tries << " " << soft_smooth_probability << endl;
-                    opt_unsat_weight = soft_unsat_weight;
                     opt_time = get_runtime();
+                    //cout << "o " << soft_unsat_weight << " " << total_step << " " << tries << " " << soft_smooth_probability << " " << opt_time << endl;
+                    cout << "o " << soft_unsat_weight << " " << opt_time << endl;
+                    opt_unsat_weight = soft_unsat_weight;
+
                     for (int v = 1; v <= num_vars; ++v)
                         best_soln[v] = cur_soln[v];
                     if (opt_unsat_weight <= best_known)
@@ -326,7 +340,14 @@ void ISDist::local_search_with_decimation(char *inputfile)
                 }
             }
             // if(goodvar_stack_fill_pointer==0) cout<<step<<": 0"<<endl;
-
+            /*if (step % 1000 == 0)
+            {
+                double elapse_time = get_runtime();
+                if (elapse_time >= cutoff_time)
+                    return;
+                else if (opt_unsat_weight == 0)
+                    return;
+            }*/
             int flipvar = pick_var();
             flip(flipvar);
             time_stamp[flipvar] = step;
@@ -346,7 +367,7 @@ void ISDist::hard_increase_weights()
         if (clause_weight[c] == (h_inc + 1))
             large_weight_clauses[large_weight_clauses_count++] = c;
 
-        for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+        for (lit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
         {
             score[v] += h_inc;
             if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
@@ -363,30 +384,58 @@ void ISDist::soft_increase_weights()
 {
     int i, c, v;
 
-    for (i = 0; i < softunsat_stack_fill_pointer; ++i)
+    if (1 == problem_weighted)
     {
-        c = softunsat_stack[i];
-        if (clause_weight[c] >= coe_soft_clause_weight + softclause_weight_threshold)
-            continue;
-        else
-            clause_weight[c] += s_inc;
+        for (i = 0; i < softunsat_stack_fill_pointer; ++i)
+        {
+            c = softunsat_stack[i];
+            if (clause_weight[c] >= tuned_org_clause_weight[c] + softclause_weight_threshold)
+                continue;
+            else
+                clause_weight[c] += s_inc;
 
-        if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
-        {
-            already_in_soft_large_weight_stack[c] = 1;
-            soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
-        }
-        for (clauselit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
-        {
-            score[v] += s_inc;
-            if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+            if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
             {
-                already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
-                mypush(v, goodvar_stack);
+                already_in_soft_large_weight_stack[c] = 1;
+                soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
+            }
+            for (lit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+            {
+                score[v] += s_inc;
+                if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+                {
+                    already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
+                    mypush(v, goodvar_stack);
+                }
             }
         }
     }
+    else
+    {
+        for (i = 0; i < softunsat_stack_fill_pointer; ++i)
+        {
+            c = softunsat_stack[i];
+            if (clause_weight[c] >= coe_soft_clause_weight + softclause_weight_threshold)
+                continue;
+            else
+                clause_weight[c] += s_inc;
 
+            if (clause_weight[c] > s_inc && already_in_soft_large_weight_stack[c] == 0)
+            {
+                already_in_soft_large_weight_stack[c] = 1;
+                soft_large_weight_clauses[soft_large_weight_clauses_count++] = c;
+            }
+            for (lit *p = clause_lit[c]; (v = p->var_num) != 0; p++)
+            {
+                score[v] += s_inc;
+                if (score[v] > 0 && already_in_goodvar_stack[v] == -1)
+                {
+                    already_in_goodvar_stack[v] = goodvar_stack_fill_pointer;
+                    mypush(v, goodvar_stack);
+                }
+            }
+        }
+    }
     return;
 }
 
@@ -466,6 +515,7 @@ void ISDist::update_clause_weights()
         }
 
         // update soft clause weight
+        // if (1 == local_soln_feasible && ((rand() % MY_RAND_MAX_INT) * BASIC_SCALE) < soft_smooth_probability && soft_large_weight_clauses_count > soft_large_clause_count_threshold)
         if (soft_unsat_weight >= opt_unsat_weight)
         {
             if (((rand() % MY_RAND_MAX_INT) * BASIC_SCALE) < soft_smooth_probability && soft_large_weight_clauses_count > soft_large_clause_count_threshold)

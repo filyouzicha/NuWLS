@@ -79,7 +79,7 @@ void ISDist::flip(int flipvar)
 {
 	int i, v, c;
 	int index;
-	clauselit *clause_c;
+	lit *clause_c;
 
 	double org_flipvar_score = score[flipvar];
 	//cout << "c org_flipvar_score: " <<org_flipvar_score << endl;
@@ -105,7 +105,7 @@ void ISDist::flip(int flipvar)
 			else if (sat_count[c] == 1) // sat_count from 0 to 1
 			{
 				sat_var[c] = flipvar; //record the only true lit's var
-				for (clauselit *p = clause_c; (v = p->var_num) != 0; p++)
+				for (lit *p = clause_c; (v = p->var_num) != 0; p++)
 				{
 					score[v] -= clause_weight[c];
 					if (score[v] <= 0 && -1 != already_in_goodvar_stack[v])
@@ -125,7 +125,7 @@ void ISDist::flip(int flipvar)
 			--sat_count[c];
 			if (sat_count[c] == 1) //sat_count from 2 to 1
 			{
-				for (clauselit *p = clause_c; (v = p->var_num) != 0; p++)
+				for (lit *p = clause_c; (v = p->var_num) != 0; p++)
 				{
 					if (p->sense == cur_soln[v])
 					{
@@ -145,7 +145,7 @@ void ISDist::flip(int flipvar)
 			}
 			else if (sat_count[c] == 0) //sat_count from 1 to 0
 			{
-				for (clauselit *p = clause_c; (v = p->var_num) != 0; p++)
+				for (lit *p = clause_c; (v = p->var_num) != 0; p++)
 				{
 					score[v] += clause_weight[c];
 					if (score[v] > 0 && -1 == already_in_goodvar_stack[v])

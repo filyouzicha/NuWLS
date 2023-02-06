@@ -6,6 +6,7 @@
 #include <limits.h>
 
 ISDist::ISDist() {}
+
 bool ISDist::parse_parameters2(int argc, char **argv)
 {
     int i = 0;
@@ -26,13 +27,12 @@ bool ISDist::parse_parameters2(int argc, char **argv)
                 exit(0);
             }
         }
-        else if (0 == strcmp(argv[i], "-rdprob"))
+        if (0 == strcmp(argv[i], "-rdprob"))
         {
             i++;
             if (i >= argc)
                 return false;
             sscanf(argv[i], "%f", &rdprob);
-            cout << "c rdprob: " << rdprob << endl;
         }
         else if (0 == strcmp(argv[i], "-bms_num"))
         {
@@ -40,7 +40,6 @@ bool ISDist::parse_parameters2(int argc, char **argv)
             if (i >= argc)
                 return false;
             sscanf(argv[i], "%d", &hd_count_threshold);
-            cout << "c bms_num: " << hd_count_threshold << endl;
         }
         else if (0 == strcmp(argv[i], "-rwprob"))
         {
@@ -48,7 +47,6 @@ bool ISDist::parse_parameters2(int argc, char **argv)
             if (i >= argc)
                 return false;
             sscanf(argv[i], "%f", &rwprob);
-            cout << "c rwprob: " << rwprob << endl;
         }
         else if (0 == strcmp(argv[i], "-hard_sp"))
         {
@@ -56,7 +54,6 @@ bool ISDist::parse_parameters2(int argc, char **argv)
             if (i >= argc)
                 return false;
             sscanf(argv[i], "%f", &smooth_probability);
-            cout << "c hsp: " << smooth_probability << endl;
         }
         else if (0 == strcmp(argv[i], "-soft_sp"))
         {
@@ -71,7 +68,7 @@ bool ISDist::parse_parameters2(int argc, char **argv)
             i++;
             if (i >= argc)
                 return false;
-            sscanf(argv[i], "%d", &softclause_weight_threshold);
+            sscanf(argv[i], "%lf", &softclause_weight_threshold);
             cout << "c soft_weight_threshold: " << softclause_weight_threshold << endl;
         }
         else if (0 == strcmp(argv[i], "-h_inc"))
@@ -79,16 +76,14 @@ bool ISDist::parse_parameters2(int argc, char **argv)
             i++;
             if (i >= argc)
                 return false;
-            sscanf(argv[i], "%d", &h_inc);
-            cout << "c h_inc: " << h_inc << endl;
+            sscanf(argv[i], "%lf", &h_inc);
         }
         else if (0 == strcmp(argv[i], "-s_inc"))
         {
             i++;
             if (i >= argc)
                 return false;
-            sscanf(argv[i], "%d", &s_inc);
-            cout << "c s_inc: " << s_inc << endl;
+            sscanf(argv[i], "%lf", &s_inc);
         }
         else if (0 == strcmp(argv[i], "-coe"))
         {
@@ -96,7 +91,6 @@ bool ISDist::parse_parameters2(int argc, char **argv)
             if (i >= argc)
                 return false;
             sscanf(argv[i], "%d", &coe_soft_clause_weight);
-            cout << "c coe_soft_clause_weight: " << coe_soft_clause_weight << endl;
         }
     }
     return true;
@@ -106,49 +100,65 @@ void ISDist::settings()
 {
     best_known = -2;
     local_soln_feasible = 1;
-    cutoff_time = 60;
-
+    cutoff_time = 300;
     max_tries = 100000000;
     max_flips = 200000000;
     max_non_improve_flip = 10000000;
-
     large_clause_count_threshold = 0;
     soft_large_clause_count_threshold = 0;
 
-    rdprob = 0.01;
-    hd_count_threshold = 42;
-    rwprob = 0.091;
-    smooth_probability = 0.000003;
-    soft_smooth_probability = 0.000003;
-
-    h_inc = 1;
-    s_inc = 1;
-    softclause_weight_threshold = 400;
-    coe_soft_clause_weight = 100;
-
-    if (0 == num_hclauses)
+    if (1 == problem_weighted) // Weighted Partial MaxSAT
     {
-        hd_count_threshold = 94;
-        coe_soft_clause_weight = 397;
-        rdprob = 0.007;
-        rwprob = 0.047;
-        soft_smooth_probability = 0.002;
-        softclause_weight_threshold = 550;
+        coe_soft_clause_weight = 3000;
+        if (0 != num_hclauses)
+        {
+            hd_count_threshold = 25;
+            rdprob = 0.036;
+            rwprob = 0.48;
+            soft_smooth_probability = 9.9E-7;
+            smooth_probability = 6.8E-5;
+            h_inc = 30;
+            s_inc = 10;
+            softclause_weight_threshold = 200;
+        }
+        else
+        {
+            softclause_weight_threshold = 0;
+            soft_smooth_probability = 1E-3;
+            hd_count_threshold = 22;
+            rdprob = 0.036;
+            rwprob = 0.48;
+            s_inc = 1.0;
+        }
     }
-    else
+    else // Unweighted Partial Maxsat
     {
-        hd_count_threshold = 96;
-        coe_soft_clause_weight = 1000;
-        h_inc = 1;
-        rdprob = 0.079;
-        rwprob = 0.087;
-        soft_smooth_probability = 6.6E-5;
-        softclause_weight_threshold = 183;
-        smooth_probability = 2E-4;
+        if (0 != num_hclauses)
+        {
+            hd_count_threshold = 96;
+            coe_soft_clause_weight = 1000;
+            h_inc = 1;
+            s_inc = 1;
+            rdprob = 0.079;
+            rwprob = 0.087;
+            soft_smooth_probability = 6.6E-5;
+            softclause_weight_threshold = 183;
+            smooth_probability = 2E-4;
+        }
+        else
+        {
+            hd_count_threshold = 94;
+            coe_soft_clause_weight = 397;
+            s_inc = 1;
+            rdprob = 0.007;
+            rwprob = 0.047;
+            soft_smooth_probability = 0.002;
+            softclause_weight_threshold = 550;
+        }
     }
 }
 
-/*void ISDist::build_neighbor_relation()
+void ISDist::build_neighbor_relation()
 {
     int i, j, count;
     int v, c, n;
@@ -185,12 +195,14 @@ void ISDist::settings()
             neighbor_flag[temp_neighbor[i]] = 0;
         }
     }
-}*/
+}
 
 void ISDist::build_instance(char *filename)
 {
-    max_soft_weight = 1;
-    min_soft_weight = INT_MAX;
+    total_soft_length = 0;
+    total_hard_length = 0;
+    // max_soft_weight = 1;
+    // min_soft_weight = INT_MAX;
     istringstream iss;
     string line;
     char tempstr1[10];
@@ -233,16 +245,13 @@ void ISDist::build_instance(char *filename)
     {
         var_lit_count[v] = 0;
         var_lit[v] = NULL;
-        //var_neighbor[v] = NULL;
+        var_neighbor[v] = NULL;
     }
 
     int cur_lit;
     c = 0;
     problem_weighted = 0;
-    partial = 0;
     num_hclauses = num_sclauses = 0;
-    max_clause_length = 0;
-    min_clause_length = 100000000;
     unit_clause_count = 0;
 
     int *redunt_test = new int[num_vars + 1];
@@ -266,20 +275,11 @@ void ISDist::build_instance(char *filename)
             if (org_clause_weight[c] != 1)
                 problem_weighted = 1;
             total_soft_weight += org_clause_weight[c];
-            /*if (org_clause_weight[c] > max_soft_weight)
-            {
-                max_soft_weight = org_clause_weight[c];
-            }
-            else if (org_clause_weight[c] < min_soft_weight)
-            {
-                min_soft_weight = org_clause_weight[c];
-            }*/
             num_sclauses++;
         }
         else
         {
             num_hclauses++;
-            partial = 1;
         }
 
         iss >> cur_lit;
@@ -309,12 +309,12 @@ void ISDist::build_instance(char *filename)
             continue;
         }
 
-        clause_lit[c] = new clauselit[clause_lit_count[c] + 1];
+        clause_lit[c] = new lit[clause_lit_count[c] + 1];
 
         int i;
         for (i = 0; i < clause_lit_count[c]; ++i)
         {
-            //clause_lit[c][i].clause_num = c;
+            clause_lit[c][i].clause_num = c;
             clause_lit[c][i].var_num = abs(temp_lit[i]);
             redunt_test[abs(temp_lit[i])] = 0;
             if (temp_lit[i] > 0)
@@ -325,22 +325,18 @@ void ISDist::build_instance(char *filename)
             var_lit_count[clause_lit[c][i].var_num]++;
         }
         clause_lit[c][i].var_num = 0;
-        //clause_lit[c][i].clause_num = -1;
+        clause_lit[c][i].clause_num = -1;
 
         if (clause_lit_count[c] == 1)
+            unit_clause[unit_clause_count++] = clause_lit[c][0];
+        if (top_clause_weight == org_clause_weight[c])
         {
-            unit_clause[unit_clause_count].var_num = clause_lit[c][0].var_num;
-            unit_clause[unit_clause_count].sense = clause_lit[c][0].sense;
-            unit_clause[unit_clause_count].clause_num = c;
-            unit_clause_count++;
+            total_hard_length += clause_lit_count[c];
         }
-
-        if (clause_lit_count[c] > max_clause_length)
-            max_clause_length = clause_lit_count[c];
-
-        if (clause_lit_count[c] < min_clause_length)
-            min_clause_length = clause_lit_count[c];
-
+        else
+        {
+            total_soft_length += clause_lit_count[c];
+        }
         c++;
     }
 
@@ -349,7 +345,7 @@ void ISDist::build_instance(char *filename)
     // creat var literal arrays
     for (v = 1; v <= num_vars; ++v)
     {
-        var_lit[v] = new varlit[var_lit_count[v] + 1];
+        var_lit[v] = new lit[var_lit_count[v] + 1];
         var_lit_count[v] = 0; // reset to 0, for build up the array
     }
     // scan all clauses to build up var literal arrays
@@ -358,15 +354,14 @@ void ISDist::build_instance(char *filename)
         for (int i = 0; i < clause_lit_count[c]; ++i)
         {
             v = clause_lit[c][i].var_num;
-            var_lit[v][var_lit_count[v]].clause_num = c;
-            var_lit[v][var_lit_count[v]].sense = clause_lit[c][i].sense;
+            var_lit[v][var_lit_count[v]] = clause_lit[c][i];
             ++var_lit_count[v];
         }
     }
     for (v = 1; v <= num_vars; ++v)
         var_lit[v][var_lit_count[v]].clause_num = -1;
 
-    //build_neighbor_relation();
+    build_neighbor_relation();
 
     best_soln_feasible = 0;
 }
@@ -378,20 +373,21 @@ void ISDist::allocate_memory()
 
     unit_clause = new lit[malloc_clause_length];
 
-    var_lit = new varlit *[malloc_var_length];
+    var_lit = new lit *[malloc_var_length];
     var_lit_count = new int[malloc_var_length];
-    clause_lit = new clauselit *[malloc_clause_length];
+    clause_lit = new lit *[malloc_clause_length];
     clause_lit_count = new int[malloc_clause_length];
 
-    score = new long long[malloc_var_length];
-    //var_neighbor = new int *[malloc_var_length];
-    //var_neighbor_count = new int[malloc_var_length];
+    score = new double[malloc_var_length];
+    var_neighbor = new int *[malloc_var_length];
+    var_neighbor_count = new int[malloc_var_length];
     time_stamp = new long long[malloc_var_length];
-    //neighbor_flag = new int[malloc_var_length];
-    //temp_neighbor = new int[malloc_var_length];
+    neighbor_flag = new int[malloc_var_length];
+    temp_neighbor = new int[malloc_var_length];
 
     org_clause_weight = new long long[malloc_clause_length];
-    clause_weight = new long long[malloc_clause_length];
+    clause_weight = new double[malloc_clause_length];
+    tuned_org_clause_weight = new double[malloc_clause_length];
     sat_count = new int[malloc_clause_length];
     sat_var = new int[malloc_clause_length];
     clause_selected_count = new long long[malloc_clause_length];
@@ -432,7 +428,7 @@ void ISDist::free_memory()
     for (i = 1; i <= num_vars; ++i)
     {
         delete[] var_lit[i];
-        //delete[] var_neighbor[i];
+        delete[] var_neighbor[i];
     }
 
     delete[] var_lit;
@@ -441,14 +437,15 @@ void ISDist::free_memory()
     delete[] clause_lit_count;
 
     delete[] score;
-    //delete[] var_neighbor;
-    //delete[] var_neighbor_count;
+    delete[] var_neighbor;
+    delete[] var_neighbor_count;
     delete[] time_stamp;
-    //delete[] neighbor_flag;
-    //delete[] temp_neighbor;
+    delete[] neighbor_flag;
+    delete[] temp_neighbor;
 
     delete[] org_clause_weight;
     delete[] clause_weight;
+    delete[] tuned_org_clause_weight;
     delete[] sat_count;
     delete[] sat_var;
     delete[] clause_selected_count;
