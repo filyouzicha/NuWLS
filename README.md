@@ -1,17 +1,12 @@
 # NuWLS
 
-1. The source code NuWLS for solving Partial MaxSAT instances:
+1. The source code NuWLS for solving (Weighted) Partial MaxSAT instances:
 
-   NuWLS-SLS-PMS dir
-
----
-2. The source code NuWLS for solving Weighted Partial MaxSAT instances:
-
-   NuWLS-SLS-WPMS dir
+   NuWLS-source-code dir
 
 ---
 
-3. Technical appendix:
+2. Technical appendix:
 
    NuWLS-technical-appendix.pdf
 
