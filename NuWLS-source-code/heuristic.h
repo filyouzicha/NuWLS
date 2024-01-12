@@ -323,7 +323,7 @@ void ISDist::local_search_with_decimation(char *inputfile)
 
                     for (int v = 1; v <= num_vars; ++v)
                         best_soln[v] = cur_soln[v];
-                    if (opt_unsat_weight <= best_known)
+                    if (opt_unsat_weight <= best_known || 0 == opt_unsat_weight)
                     {
                         cout << "c best solution found." << endl;
                         if (opt_unsat_weight < best_known)
@@ -339,15 +339,7 @@ void ISDist::local_search_with_decimation(char *inputfile)
                     // break;
                 }
             }
-            // if(goodvar_stack_fill_pointer==0) cout<<step<<": 0"<<endl;
-            /*if (step % 1000 == 0)
-            {
-                double elapse_time = get_runtime();
-                if (elapse_time >= cutoff_time)
-                    return;
-                else if (opt_unsat_weight == 0)
-                    return;
-            }*/
+            
             int flipvar = pick_var();
             flip(flipvar);
             time_stamp[flipvar] = step;
